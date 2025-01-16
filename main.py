@@ -8,9 +8,9 @@ pygame.init()
 pygame.mixer.init()
 
 # Load sounds
-menu_music = pygame.mixer.Sound('background_menu.mp3')
-game_music = pygame.mixer.Sound('main.mp3')
-collision_sound = pygame.mixer.Sound('collision.mp3')
+menu_music = pygame.mixer.Sound('sounds/background_menu.mp3')
+game_music = pygame.mixer.Sound('sounds/main.mp3')
+collision_sound = pygame.mixer.Sound('sounds/collision.mp3')
 
 # Initial volumes
 menu_volume = 0.5
@@ -121,7 +121,7 @@ player = PlayerVehicle(player_x, player_y)
 player_group.add(player)
 
 # load the vehicle images
-image_filenames = ['pickup_truck.png', 'semi_trailer.png', 'taxi.png', 'van.png']
+image_filenames = ['police_car.png', 'long_car.png', 'big_car.png', 'ambulance.png']
 vehicle_images = []
 for image_filename in image_filenames:
     image = pygame.image.load('images/' + image_filename)
