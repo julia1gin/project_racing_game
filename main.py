@@ -1,9 +1,7 @@
-from xmlrpc.client import boolean
 import sys
 import pygame
 from pygame.locals import *
 import random
-import math
 
 pygame.init()
 # Initialize mixer for sound
@@ -74,6 +72,12 @@ speed = 2
 score = 0
 level = 1
 
+# Draw text function
+def draw_text(text, font, color, surface, x, y):
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect(center=(x, y))
+    surface.blit(text_surface, text_rect)
+
 # system to calculate level based on score
 def get_level(score):
     return (score // 5) + 1
@@ -140,6 +144,13 @@ def main_menu():
     menu_music.set_volume(menu_volume)
     if(menu_music.get_num_channels() < 1):
         menu_music.play(loops=-1)
+    font = pygame.font.Font(pygame.font.get_default_font(), 36)
+    button_texts = [languages[current_language]["start"], languages[current_language]["settings"],
+                    languages[current_language]["developer"], languages[current_language]["exit"]]
+    button_widths = [font.size(text)[0] + 40 for text in button_texts]  # Add padding
+    max_button_width = max(button_widths)
+    button_height = 50
+    button_y_positions = [200, 275, 350, 425]
 
     while running_menu:
         screen.fill(gray)
@@ -150,15 +161,13 @@ def main_menu():
         draw_text("Racing v0.0.1", font, white, screen, width / 2, height / 4)
 
         # Draw buttons
-        play_button = pygame.draw.rect(screen, yellow, (150, 200, 200, 50))
-        settings_button = pygame.draw.rect(screen, yellow, (150, 275, 200, 50))
-        developer_button = pygame.draw.rect(screen, yellow, (150, 350, 200, 50))
-        exit_button = pygame.draw.rect(screen, yellow, (150, 425, 200, 50))
-
-        draw_text(languages[current_language]["start"], font, white, screen, width / 2, 225)
-        draw_text(languages[current_language]["settings"], font, white, screen, width / 2, 300)
-        draw_text(languages[current_language]["developer"], font, white, screen, width / 2, 375)
-        draw_text(languages[current_language]["exit"], font, white, screen, width / 2, 450)
+        buttons = []
+        for i, text in enumerate(button_texts):
+            button_rect = pygame.Rect((width - max_button_width) / 2, button_y_positions[i], max_button_width,
+                                      button_height)
+            pygame.draw.rect(screen, yellow, button_rect, border_radius=15)  # Rounded corners
+            draw_text(text, font, white, screen, width / 2, button_y_positions[i] + button_height / 2)
+            buttons.append((button_rect, text))
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -167,17 +176,19 @@ def main_menu():
                 sys.exit()
 
             if event.type == MOUSEBUTTONDOWN:
-                if play_button.collidepoint(event.pos):
-                    menu_music.stop()
-                    return 'start'
-                elif settings_button.collidepoint(event.pos):
-                    return 'settings'
-                elif developer_button.collidepoint(event.pos):
-                    return 'developer'
-                elif exit_button.collidepoint(event.pos):
-                    running_menu = False
-                    pygame.quit()
-                    sys.exit()
+                for button_rect, text in buttons:
+                    if button_rect.collidepoint(event.pos):
+                        if text == languages[current_language]["start"]:
+                            menu_music.stop()
+                            return 'start'
+                        elif text == languages[current_language]["settings"]:
+                            return 'settings'
+                        elif text == languages[current_language]["developer"]:
+                            return 'developer'
+                        elif text == languages[current_language]["exit"]:
+                            running_menu = False
+                            pygame.quit()
+                            sys.exit()
 
         pygame.display.update()
 
@@ -254,11 +265,14 @@ def developer_screen():
 
     # Calculate center position for text
     text_lines = [
-        "Developer Information",
-        "Author: Your Name",
-        "Project for the courses:",
-        '"Mathematical Foundations of Computer Graphics"',
-        '"Documentation Systems"'
+        "Информация о разработчике:",
+        "Автор: Гиниятуллина Юлия Сергеевна,",
+        "студентка ИВТ 3 курс, группа 2.2",
+        "Этот проект создан в рамках дисциплин",
+        '"Математические основы компьютерной',
+        'графики" и "Системы и технологии',
+        'подготовки технической и издательской',
+        'документации"'
     ]
     line_height = 30
     total_height = len(text_lines) * line_height
