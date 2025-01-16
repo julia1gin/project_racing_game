@@ -31,6 +31,8 @@ screen_size = (width, height)
 screen = pygame.display.set_mode(screen_size)
 pygame.display.set_caption('Car Game')
 
+background_image = pygame.image.load('images/background.jpg')
+
 # colors
 gray = (100, 100, 100)
 green = (76, 208, 56)
@@ -153,7 +155,7 @@ def main_menu():
     button_y_positions = [200, 275, 350, 425]
 
     while running_menu:
-        screen.fill(gray)
+        screen.blit(background_image, (0, 0))
 
         font = pygame.font.Font(pygame.font.get_default_font(), 36)
 
