@@ -4,6 +4,7 @@ from pygame.locals import *
 import random
 import json
 
+score = 0
 # Draw text function
 def draw_text(text, font, color, surface, x, y):
     text_surface = font.render(text, True, color)
@@ -43,7 +44,6 @@ class Settings:
         #Game settings
         self.gameover = False
         self.speed = 2
-        self.score = 0
         self.level = 1
 
 
@@ -51,7 +51,8 @@ class Scoreboard:
     def __init__(self):
         self.data_file = 'scoreboard.json'
         self.width = 500
-        self.score = 0
+        global score
+
 
     def load_scoreboard(self):
         try:
@@ -90,7 +91,7 @@ class Scoreboard:
         while input_active:
             screen.blit(winner_image, (0, 0))
             self.display_top_scores()
-            draw_text(f"{languages[current_language]["your_score"]}: {self.score}", font, white, screen, self.width / 2, 250)
+            draw_text(f"{languages[current_language]["your_score"]}: {score}", font, white, screen, self.width / 2, 250)
             draw_text(languages[current_language]["your_name"], font, white, screen, self.width / 2, 300)
             draw_text(name, font, white, screen, self.width / 2, 350)
 
@@ -401,8 +402,8 @@ def game_loop():
     board = Scoreboard()
     lane_marker_move_y = st.lane_marker_move_y
 
+    global score
     gameover = st.gameover
-    score = st.score
     speed = st.speed
     level = st.level
 
