@@ -5,6 +5,7 @@ import random
 import json
 
 score = 0
+
 # Draw text function
 def draw_text(text, font, color, surface, x, y):
     text_surface = font.render(text, True, color)
