@@ -517,6 +517,7 @@ def game_loop():
                         name = board.get_player_name()
                         if name:
                             board.update_scoreboard(name, score)
+                        score = 0
                         return 'menu'
 
         pygame.display.update()
