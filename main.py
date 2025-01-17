@@ -2,10 +2,15 @@ import sys
 import pygame
 from pygame.locals import *
 import random
+import json
+
 
 pygame.init()
 # Initialize mixer for sound
 pygame.mixer.init()
+
+# File to store scoreboard
+data_file = 'scoreboard.json'
 
 # Load sounds
 menu_music = pygame.mixer.Sound('sounds/background_menu.mp3')
@@ -22,7 +27,7 @@ menu_music.set_volume(menu_volume)
 game_music.set_volume(game_volume)
 collision_sound.set_volume(collision_volume)
 
-# create the window
+# Create the window
 width = 500
 height = 600
 hud_height = 50  # Height of the HUD
@@ -33,20 +38,23 @@ pygame.display.set_caption('Car Game')
 
 background_image = pygame.image.load('images/background.jpg')
 
-# colors
+# Colors
 gray = (100, 100, 100)
 green = (76, 208, 56)
 red = (200, 0, 0)
 white = (255, 255, 255)
-yellow = (255, 232, 0)
 black = (0, 0, 0)
+cornsilk4 = (139, 136, 120, 255)
+navajowhite = (139, 121, 94, 255)
+magenta3 = (139, 0, 139, 255)
+steelblue1 = (79, 148, 205, 255)
 
-# road and marker sizes
+# Road and marker sizes
 road_width = 300
 marker_width = 10
 marker_height = 50
 
-# lane coordinates
+# Lane coordinates
 left_lane = 150
 center_lane = 250
 right_lane = 350
@@ -80,15 +88,85 @@ def draw_text(text, font, color, surface, x, y):
     text_rect = text_surface.get_rect(center=(x, y))
     surface.blit(text_surface, text_rect)
 
+# Load scoreboard from file
+def load_scoreboard():
+    try:
+        with open(data_file, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+# Save scoreboard to file
+def save_scoreboard(scoreboard):
+    with open(data_file, 'w') as f:
+        json.dump(scoreboard, f)
+
+# Update scoreboard with top 3 logic
+def update_scoreboard(name, score):
+    scoreboard = load_scoreboard()
+    scoreboard.append({"name": name, "score": score})
+    scoreboard = sorted(scoreboard, key=lambda x: x['score'], reverse=True)[:3]
+    save_scoreboard(scoreboard)
+
+# Display top 3 records during name entry
+def display_top_scores():
+    font = pygame.font.SysFont("Bookman Old Style", 24)
+    scoreboard = load_scoreboard()
+
+    draw_text("Top Scores:", font, white, screen, width / 2, 50)
+    for i, entry in enumerate(scoreboard[:3]):
+        draw_text(f"{i + 1}. {entry['name']}: {entry['score']}", font, white, screen, width / 2, 100 + i * 30)
+
+def get_player_name():
+    font = pygame.font.SysFont("Bookman Old Style", 36)
+    input_active = True
+    name = ""
+    winner_image = pygame.image.load("images/winner.jpg")
+
+    while input_active:
+        screen.blit(winner_image, (0, 0))
+        display_top_scores()
+        draw_text(f"{languages[current_language]["your_score"]}: {score}", font, white, screen, width / 2, 250)
+        draw_text(languages[current_language]["your_name"], font, white, screen, width / 2, 300)
+        draw_text(name, font, white, screen, width / 2, 350)
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == KEYDOWN:
+                if event.key == K_RETURN:
+                    return name[:10]
+                elif event.key == K_BACKSPACE:
+                    name = name[:-1]
+                else:
+                    if len(name) < 10 and event.unicode.isprintable():
+                        name += event.unicode
+
+        pygame.display.update()
+
 # system to calculate level based on score
 def get_level(score):
     return (score // 5) + 1
 
 # Languages (for localization)
 languages = {
-    "en": {"start": "Start", "settings": "Settings", "exit": "Exit", "score": "Score", "level": "Level", "game_over": "Game Over.", "developer": "Developer"},
-    "ru": {"start": "Начать", "settings": "Настройки", "exit": "Выход", "score": "Очки", "level": "Уровень", "game_over": "Игра окончена.", "developer": "Разработчик"},
-    "tt": {"start": "Башлау", "settings": "Көйләүләр", "exit": "Чыгыш", "score": "Балл", "level": "Дәрәҗә", "game_over": "Уйнау тәмам.", "developer": "Разработчик"}
+    "en":
+        {"start": "Start", "settings": "Settings",
+         "exit": "Exit", "score": "Score", "level": "Level",
+         "game_over": "Game Over.", "developer": "Developer",
+         "menu_music": "Menu Music", "game_music": "Game Music",
+         "collision_sounds": "Collision sounds", "language": "Language",
+         "back": "Back", "your_score": "Your score", "your_name": "Enter your name:"},
+
+    "ru": {"start": "Начать", "settings": "Настройки",
+           "exit": "Выход", "score": "Очки", "level": "Уровень",
+           "game_over": "Игра окончена.", "developer": "Разработчик",
+           "menu_music": "Громкость музыки в меню",
+           "game_music": "Громкость музыки в игре",
+           "collision_sounds": "Громкость звуков", "language": "Язык",
+           "back": "Назад", "your_score": "Ваш счет", "your_name": "Введите свое имя:"}
 }
 
 current_language = "en"
@@ -146,7 +224,7 @@ def main_menu():
     menu_music.set_volume(menu_volume)
     if(menu_music.get_num_channels() < 1):
         menu_music.play(loops=-1)
-    font = pygame.font.Font(pygame.font.get_default_font(), 36)
+    font = pygame.font.SysFont("Bookman Old Style", 36)
     button_texts = [languages[current_language]["start"], languages[current_language]["settings"],
                     languages[current_language]["developer"], languages[current_language]["exit"]]
     button_widths = [font.size(text)[0] + 40 for text in button_texts]  # Add padding
@@ -157,7 +235,7 @@ def main_menu():
     while running_menu:
         screen.blit(background_image, (0, 0))
 
-        font = pygame.font.Font(pygame.font.get_default_font(), 36)
+        font = pygame.font.SysFont("Bookman Old Style", 36)
 
         # Draw title
         draw_text("Racing v0.0.1", font, white, screen, width / 2, height / 4)
@@ -167,7 +245,7 @@ def main_menu():
         for i, text in enumerate(button_texts):
             button_rect = pygame.Rect((width - max_button_width) / 2, button_y_positions[i], max_button_width,
                                       button_height)
-            pygame.draw.rect(screen, yellow, button_rect, border_radius=15)  # Rounded corners
+            pygame.draw.rect(screen, magenta3, button_rect, border_radius=15)  # Rounded corners
             draw_text(text, font, white, screen, width / 2, button_y_positions[i] + button_height / 2)
             buttons.append((button_rect, text))
 
@@ -198,37 +276,38 @@ def main_menu():
 def settings_screen():
     global menu_volume, game_volume, collision_volume, current_language
     running_settings = True
-    font = pygame.font.Font(pygame.font.get_default_font(), 24)
-    settings_font = pygame.font.SysFont("Times New Roman", 30)
+    font = pygame.font.SysFont("Bookman Old Style", 24)
+    settings_font = pygame.font.SysFont("Bookman Old Style", 42)
+    buttons_font = pygame.font.SysFont("Bookman Old Style", 28)
     adjusting_slider = None
 
     while running_settings:
-        screen.fill(green)
+        screen.fill(cornsilk4)
 
-        draw_text("Settings", settings_font, white, screen, width / 2, height / 8)
+        draw_text(languages[current_language]["settings"], settings_font, white, screen, width / 2, height / 8)
 
         # Menu music volume slider
-        pygame.draw.rect(screen, yellow, (100, 150, 300, 10))
+        pygame.draw.rect(screen, navajowhite, (100, 150, 300, 10))
         pygame.draw.rect(screen, white, (100 + int(menu_volume * 300), 135, 10, 40))
-        draw_text("Menu Music", font, white, screen, 250, 185)
+        draw_text(languages[current_language]["menu_music"], font, white, screen, 250, 185)
 
         # Game music volume slider
-        pygame.draw.rect(screen, yellow, (100, 220, 300, 10))
+        pygame.draw.rect(screen, navajowhite, (100, 220, 300, 10))
         pygame.draw.rect(screen, white, (100 + int(game_volume * 300), 205, 10, 40))
-        draw_text("Game Music", font, white, screen, 250, 255)
+        draw_text(languages[current_language]["game_music"], font, white, screen, 250, 255)
 
         # Collision sound volume slider
-        pygame.draw.rect(screen, yellow, (100, 290, 300, 10))
+        pygame.draw.rect(screen, navajowhite, (100, 290, 300, 10))
         pygame.draw.rect(screen, white, (100 + int(collision_volume * 300), 275, 10, 40))
-        draw_text("Collision Sounds", font, white, screen, 250, 325)
+        draw_text(languages[current_language]["collision_sounds"], font, white, screen, 250, 325)
 
         # Language selection dropdown
-        pygame.draw.rect(screen, yellow, (100, 380, 300, 40))
-        draw_text(f"Language: {current_language.upper()}", font, white, screen, width / 2, 400)
+        pygame.draw.rect(screen, navajowhite, (100, 380, 300, 40))
+        draw_text(f"{languages[current_language]["language"]}: {current_language.upper()}", buttons_font, white, screen, width / 2, 400)
 
         # Back button
-        back_button = pygame.draw.rect(screen, yellow, (150, 450, 200, 50))
-        draw_text("Back", font, white, screen, width / 2, 475)
+        back_button = pygame.draw.rect(screen, navajowhite, (150, 450, 200, 50))
+        draw_text(languages[current_language]["back"], buttons_font, white, screen, width / 2, 475)
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -251,8 +330,6 @@ def settings_screen():
                         # Switch language
                         if current_language == "en":
                             current_language = "ru"
-                        elif current_language == "ru":
-                            current_language = "tt"
                         else:
                             current_language = "en"
                 if back_button.collidepoint(event.pos):
@@ -262,12 +339,14 @@ def settings_screen():
 
 # Developer screen
 def developer_screen():
-    font = pygame.font.Font(pygame.font.get_default_font(), 24)
+    font = pygame.font.SysFont("Bookman Old Style", 24)
+    button_font = pygame.font.SysFont("Bookman Old Style", 28)
     running_developer = True
-
+    dev_image = pygame.image.load("images/dev_image.png")
     # Calculate center position for text
     text_lines = [
         "Информация о разработчике:",
+        "",
         "Автор: Гиниятуллина Юлия Сергеевна,",
         "студентка ИВТ 3 курс, группа 2.2",
         "Этот проект создан в рамках дисциплин",
@@ -276,19 +355,19 @@ def developer_screen():
         'подготовки технической и издательской',
         'документации"'
     ]
+
     line_height = 30
-    total_height = len(text_lines) * line_height
 
     while running_developer:
-        screen.fill(green)
+        screen.blit(dev_image, (0, 0))
 
         # Display title and info text
         for idx, line in enumerate(text_lines):
             draw_text(line, font, white, screen, width / 2, height / 4 + idx * line_height)
 
         # Back button
-        back_button = pygame.draw.rect(screen, yellow, (150, 450, 200, 50))
-        draw_text("Back", font, white, screen, width / 2, 475)
+        back_button = pygame.draw.rect(screen, steelblue1, (150, 450, 200, 50))
+        draw_text("Back", button_font, white, screen, width / 2, 475)
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -344,19 +423,20 @@ def game_loop():
                     collision_sound.play()
                     crash_rect.center = player.rect.center
 
+
         # Draw the background
         screen.fill(green)
 
         # Draw HUD panel
         pygame.draw.rect(screen, black, (0, 0, width, hud_height))  # Top HUD background
-        font = pygame.font.Font(pygame.font.get_default_font(), 20)
+        font = pygame.font.SysFont("Bookman Old Style", 20)
         draw_text(f'{languages[current_language]["score"]}: {score}', font, white, screen, 70, 25)
         draw_text(f'{languages[current_language]["level"]}: {level}', font, white, screen, width - 70, 25)
 
         # Draw the road
         pygame.draw.rect(screen, gray, road)
-        pygame.draw.rect(screen, yellow, left_edge_marker)
-        pygame.draw.rect(screen, yellow, right_edge_marker)
+        pygame.draw.rect(screen, white, left_edge_marker)
+        pygame.draw.rect(screen, white, right_edge_marker)
 
         # Animate lane markers
         lane_marker_move_y += speed * 1.5
@@ -415,6 +495,9 @@ def game_loop():
                         running = False
                         gameover = False
                     if event.type == KEYDOWN:
+                        name = get_player_name()
+                        if name:
+                            update_scoreboard(name, score)
                         return 'menu'
 
         pygame.display.update()
