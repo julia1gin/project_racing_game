@@ -4,15 +4,17 @@ from pygame.locals import *
 import random
 import json
 
+# Draw text function
+def draw_text(text, font, color, surface, x, y):
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect(center=(x, y))
+    surface.blit(text_surface, text_rect)
+
 class Settings:
     def __init__(self):
         self.screen_width = 500
         self.screen_height = 600
 
-        # Initial volumes
-        self.menu_volume = 0.5
-        self.game_volume = 0.5
-        self.collision_volume = 0.5
 
         # Road and marker sizes
         self.road_width = 300
@@ -108,6 +110,23 @@ class Scoreboard:
 
             pygame.display.update()
 
+class Vehicle(pygame.sprite.Sprite):
+    def __init__(self, image, x, y):
+        pygame.sprite.Sprite.__init__(self)
+
+        # scale the image down so it's not wider than the lane
+        image_scale = 45 / image.get_rect().width
+        new_width = image.get_rect().width * image_scale
+        new_height = image.get_rect().height * image_scale
+        self.image = pygame.transform.scale(image, (new_width, new_height))
+
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+
+class PlayerVehicle(Vehicle):
+    def __init__(self, x, y):
+        image = pygame.image.load('images/car.png')
+        super().__init__(image, x, y)
 
 languages = {
         "en":
@@ -129,6 +148,8 @@ languages = {
 
 current_language = "en"
 
+
+
 pygame.init()
 
 # Initialize mixer for sound
@@ -137,10 +158,15 @@ menu_music = pygame.mixer.Sound('sounds/background_menu.mp3')
 game_music = pygame.mixer.Sound('sounds/main.mp3')
 collision_sound = pygame.mixer.Sound('sounds/collision.mp3')
 
+menu_volume = 0.5
+game_volume = 0.5
+collision_volume = 0.5
+
+
 st = Settings()
-menu_music.set_volume(st.menu_volume)
-game_music.set_volume(st.game_volume)
-collision_sound.set_volume(st.collision_volume)
+menu_music.set_volume(menu_volume)
+game_music.set_volume(game_volume)
+collision_sound.set_volume(collision_volume)
 
 
 screen_size = (st.screen_width, st.screen_height)
@@ -161,8 +187,8 @@ navajowhite = (139, 121, 94, 255)
 magenta3 = (139, 0, 139, 255)
 steelblue1 = (79, 148, 205, 255)
 
-lanes = [st.left_lane, st.center_lane, st.right_lane]
 
+lanes = [st.left_lane, st.center_lane, st.right_lane]
 
 # player's starting coordinates
 player_x = 250
@@ -172,37 +198,10 @@ player_y = st.screen_height - 120  # Positioned above the bottom edge
 clock = pygame.time.Clock()
 fps = 120
 
-# Draw text function
-def draw_text(text, font, color, surface, x, y):
-    text_surface = font.render(text, True, color)
-    text_rect = text_surface.get_rect(center=(x, y))
-    surface.blit(text_surface, text_rect)
-
 
 # system to calculate level based on score
 def get_level(score):
     return (score // 5) + 1
-
-
-
-class Vehicle(pygame.sprite.Sprite):
-    def __init__(self, image, x, y):
-        pygame.sprite.Sprite.__init__(self)
-
-        # scale the image down so it's not wider than the lane
-        image_scale = 45 / image.get_rect().width
-        new_width = image.get_rect().width * image_scale
-        new_height = image.get_rect().height * image_scale
-        self.image = pygame.transform.scale(image, (new_width, new_height))
-
-        self.rect = self.image.get_rect()
-        self.rect.center = [x, y]
-
-class PlayerVehicle(Vehicle):
-    def __init__(self, x, y):
-        image = pygame.image.load('images/car.png')
-        super().__init__(image, x, y)
-
 
 # sprite groups
 player_group = pygame.sprite.Group()
@@ -223,18 +222,11 @@ for image_filename in image_filenames:
 crash = pygame.image.load('images/crash.png')
 crash_rect = crash.get_rect()
 
-# Function to draw text
-def draw_text(text, font, color, surface, x, y):
-    text_surface = font.render(text, True, color)
-    text_rect = text_surface.get_rect()
-    text_rect.center = (x, y)
-    surface.blit(text_surface, text_rect)
-
 class Menu:
     # Main menu screen with animation
     def main_menu(self):
         st = Settings()
-        menu_volume = st.menu_volume
+        global menu_volume, menu_music
         running_menu = True
         # Play the background menu music
         menu_music.set_volume(menu_volume)
@@ -292,10 +284,7 @@ class Menu:
     # Settings screen
     def settings_screen(self):
         st = Settings()
-        menu_volume = st.menu_volume
-        game_volume = st.game_volume
-        collision_volume = st.collision_volume
-        global current_language
+        global current_language, menu_volume, game_volume, collision_volume
         running_settings = True
         font = pygame.font.SysFont("Bookman Old Style", 24)
         settings_font = pygame.font.SysFont("Bookman Old Style", 42)
@@ -411,8 +400,6 @@ def game_loop():
     st = Settings()
     board = Scoreboard()
     lane_marker_move_y = st.lane_marker_move_y
-    game_volume = st.game_volume
-    collision_volume = st.collision_volume
 
     gameover = st.gameover
     score = st.score
